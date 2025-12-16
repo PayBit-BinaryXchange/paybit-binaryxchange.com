@@ -19,13 +19,23 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")))
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
-app.use(
-  session({
-    secret: "secretkey",
-    resave: false,
-    saveUninitialized: false
-  })
-);
+app.set("trust proxy", 1); // REQUIRED for Render
+
+const MongoStore = require("connect-mongo");
+
+app.use(session({
+  secret: process.env.SECRET_KEY,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI
+  }),
+  cookie: {
+    secure: true,
+    httpOnly: true,
+    sameSite: "lax"
+  }
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
@@ -77,13 +87,20 @@ app.post("/register", async (req, res) => {
       currency,
       account
     });
-
+    Swal.fire({
+      icon: "success",
+      title: "Registered successfully",
+      text: "Welcome to PayBit BinaryXchange"
+    });
     res.redirect("/Dashboard/login"); // your login page
   } catch (err) {
   if (err.code === 11000) {
-    res.send("User already exists");
-  } else {
-    res.send("Error occurred during registration");
+    Swal.fire({
+      icon: "Failed",
+      title: "Registered Failed",
+      text: "Check your details and try again"
+    });
+    
   }
 }
 });
