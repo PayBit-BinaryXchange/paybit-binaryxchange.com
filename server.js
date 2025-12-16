@@ -8,6 +8,7 @@ const session = require("express-session");
 const flash = require("express-flash");
 const mongoose = require("mongoose");
 const User = require("./models/Users");
+require('dotenv').config();
 
 initializePassport(passport);
 //const routes = require('routes')
@@ -30,7 +31,7 @@ app.use(passport.session());
 app.use(flash());
 //app.set('view engine', 'html');
 
-
+const port = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGO_URI, { 
   useNewUrlParser: true, 
   useUnifiedTopology: true 
@@ -107,7 +108,10 @@ app.get("/logout", (req, res) => {
 });
 
 // HOME PAGE ROUTES
-app.get('/index', (req, res) => {res.render('index'); });
+app.get('/test', (req, res) => {res.send('Render server is working!');
+});
+
+app.get('/', (req, res) => {res.render('index'); });
 
 app.get('/home', (req, res) => {res.render('home'); });
 
@@ -144,7 +148,7 @@ app.post('/Dashboard/deposit', (req, res) => {res.render('Dashboard/deposit'); }
 
 app.get('/Dashboard/settings', (req, res) => {res.render('Dashboard/settings'); });
 
-app.get('/Dashboard/signal', (req, res) => {res.render('Dashboard//signal'); });
+app.get('/Dashboard/signal', (req, res) => {res.render('Dashboard/signal'); });
 
 app.get('/Dashboard/account', (req, res) => {res.render('Dashboard/account'); });
 
@@ -185,4 +189,4 @@ app.get("/captcha.php", (req, res) => {
 
 
 
-app.listen(5000, () => {console.log('Server is running on http://localhost:5000');});
+app.listen(port, () => {console.log(`Server is running on http://localhost:${port}`);});
