@@ -9,6 +9,7 @@ const flash = require("express-flash");
 const mongoose = require("mongoose");
 const User = require("./models/Users");
 require('dotenv').config();
+const MongoStore = require("connect-mongo");
 
 initializePassport(passport);
 //const routes = require('routes')
@@ -21,14 +22,13 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.set("trust proxy", 1); // REQUIRED for Render
 
-const MongoStore = require("connect-mongo");
-
 app.use(session({
   secret: process.env.SECRET_KEY,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI
+  mongoUrl: process.env.MONGO_URI,
+  collectionName: "sessions", // optiona
   }),
   cookie: {
     secure: true,
