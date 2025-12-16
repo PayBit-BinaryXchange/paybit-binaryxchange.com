@@ -9,7 +9,7 @@ const flash = require("express-flash");
 const mongoose = require("mongoose");
 const User = require("./models/Users");
 require('dotenv').config();
-const MongoStore = require("connect-mongo");
+//const MongoStore = require("connect-mongo");
 
 initializePassport(passport);
 //const routes = require('routes')
@@ -27,19 +27,10 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB connected");
 
-    app.use(session({
+  app.use(session({
       secret: process.env.SECRET_KEY || "render-session-secret",
       resave: false,
-      saveUninitialized: false,
-      store: MongoStore.create({
-        mongoUrl: process.env.MONGO_URI,
-        collectionName: "sessions"
-      }),
-      cookie: {
-        secure: process.env.NODE_ENV === "production",
-        httpOnly: true,
-        sameSite: "lax"
-      }
+      saveUninitialized: false
     }));
 
     app.use(passport.initialize());
