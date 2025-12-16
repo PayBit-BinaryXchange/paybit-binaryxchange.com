@@ -69,7 +69,8 @@ app.post("/register", async (req, res) => {
   } = req.body;
 
   if (password !== password2) {
-    return res.send("Passwords do not match");
+      req.flash("error", "Passwords do not match");
+    return res.redirect("/Dashboard/register");
   }
 
   try {
@@ -87,20 +88,12 @@ app.post("/register", async (req, res) => {
       currency,
       account
     });
-    Swal.fire({
-      icon: "success",
-      title: "Registered successfully",
-      text: "Welcome to PayBit BinaryXchange"
-    });
-    res.redirect("/Dashboard/login"); // your login page
+    req.flash("success", "Registered successfully. Please log in.");
+    res.redirect("/Dashboard/login");
   } catch (err) {
   if (err.code === 11000) {
-    Swal.fire({
-      icon: "Failed",
-      title: "Registered Failed",
-      text: "Check your details and try again"
-    });
-    
+    req.flash("error", "Registration failed. Try again.");
+    res.redirect("/Dashboard/register");  
   }
 }
 });
