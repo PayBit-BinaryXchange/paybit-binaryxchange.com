@@ -9,7 +9,7 @@ const flash = require("express-flash");
 const mongoose = require("mongoose");
 const User = require("./models/Users");
 require('dotenv').config();
-//const MongoStore = require("connect-mongo");
+const MongoStore = require("connect-mongo");
 
 initializePassport(passport);
 //const routes = require('routes')
@@ -22,28 +22,40 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.set("trust proxy", 1); // REQUIRED for Render
 
-app.use(session({
-  secret: process.env.SECRET_KEY,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: true,      // set to true if using HTTPS
-    httpOnly: true,
-    sameSite: "lax"
-  }
-}));
-app.use(passport.initialize());
-app.use(passport.session());
-app.use(flash());
-//app.set('view engine', 'html');
 
-const port = process.env.PORT || 5000;
-mongoose.connect(process.env.MONGO_URI, { 
-  useNewUrlParser: true, 
-  useUnifiedTopology: true 
-})
-.then(() => console.log("MongoDB connected"))
-.catch(err => console.error(err));
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected");
+
+    app.use(session({
+      secret: process.env.SECRET_KEY || "render-session-secret",
+      resave: false,
+      saveUninitialized: false,
+      store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        collectionName: "sessions"
+      }),
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        sameSite: "lax"
+      }
+    }));
+
+    app.use(passport.initialize());
+    app.use(passport.session());
+    app.use(flash());
+
+    const port = process.env.PORT || 5000;
+    app.listen(port, () => {
+      console.log(`Server running`);
+    });
+  })
+  .catch(err => {
+    console.error("MongoDB connection failed:", err);
+    process.exit(1);
+  });
+
 
 
 // Middleware
@@ -194,5 +206,4 @@ app.get("/captcha.php", (req, res) => {
 
 
 
-
-app.listen(port, () => {console.log(`Server is running on http://localhost:${port}`);});
+app.listen(port, () => {console.log(`Server is running on http://localhost:${port}`)});
