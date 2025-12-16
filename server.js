@@ -9,7 +9,7 @@ const flash = require("express-flash");
 const mongoose = require("mongoose");
 const User = require("./models/Users");
 require('dotenv').config();
-const MongoStore = require("connect-mongo");
+//const MongoStore = require("connect-mongo");
 
 initializePassport(passport);
 //const routes = require('routes')
@@ -26,12 +26,8 @@ app.use(session({
   secret: process.env.SECRET_KEY,
   resave: false,
   saveUninitialized: false,
-  store: new MongoStore({
-    mongoUrl: process.env.MONGO_URI,
-    collectionName: "sessions"
-  }),
   cookie: {
-    secure: true,
+    secure: true,      // set to true if using HTTPS
     httpOnly: true,
     sameSite: "lax"
   }
