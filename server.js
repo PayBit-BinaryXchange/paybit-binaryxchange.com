@@ -108,7 +108,6 @@ app.post("/login",
 
 
 
-
 /* ================= LOGOUT ================= */
 app.get("/logout", (req, res, next) => {
   req.logout(err => {
@@ -203,6 +202,3 @@ app.get("/captcha.php", (req, res) => {
   res.type("svg");
   res.send(captcha.data);
 });
-
-
-
