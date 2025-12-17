@@ -213,7 +213,7 @@
     <div class="sidebar-right pull-right ">
       <ul class="navbar-nav  justify-content-end">
         <li class="nav-item">
-          <button class="btn-link btn userprofile" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button><span class="userpic"><img src= "/img/profile/default.png" alt="user pic"></span> <span class="text"></span>
+          <button class="btn-link btn userprofile" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button><span class="userpic"><img src="<%= profilePic %>" alt="user pic"></span> <span class="text"><%= user.firstname %> <%= user.lastname %></span>
         </li>
         <li><a href="logout" class="btn btn-link icon-header"><span class="fa fa-power-off"></span></a></li>
       </ul>
@@ -224,8 +224,8 @@
   <div class="user-menu-items">
     <div class="list-unstyled btn-group">
       <button class="media btn btn-link" aria-haspopup="true" aria-expanded="false"> <span class="message_userpic">
-        <img class="d-flex" src="/img/profile/default.png" alt="Generic user image"></span> 
-        <span class="media-body"> <span class="mt-0 mb-1"></span> <small></small> </span> </button>
+        <img class="d-flex" src="<%= profilePic %>" alt="Generic user image"></span> 
+        <span class="media-body"> <span class="mt-0 mb-1"><%= user.firstname %><%= user.lastname %></span> <small><%= user.username %></small> </span> </button>
     </div>
   </div>
   <br>

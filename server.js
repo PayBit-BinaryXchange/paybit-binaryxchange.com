@@ -160,7 +160,15 @@ app.get('/Dashboard/settings', (req, res) => {res.render('Dashboard/settings'); 
 
 app.get('/Dashboard/signal', (req, res) => {res.render('Dashboard/signal'); });
 
-app.get('/Dashboard/account', (req, res) => {res.render('Dashboard/account'); });
+app.get('/Dashboard/account', (req, res) => {
+  if (!req.isAuthenticated()){
+    res.render('Dashboard/login');
+  }
+  res.render('Dashboard/account',{
+    user: req.body,
+    profilePic: req.user.profilePic || '/img/profile/default.png' 
+  })
+  });
 
 app.get('/Dashboard/forgot', (req, res) => {res.render('Dashboard/forgot'); });
 
