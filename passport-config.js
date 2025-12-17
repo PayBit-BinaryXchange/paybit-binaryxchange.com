@@ -8,7 +8,7 @@ module.exports = function (passport) {
       { usernameField: "login" }, // single field
       async (login, password, done) => {
         try {
-          const users = await User.findOne({
+          const users = await Users.findOne({
             $or: [
               { email: login },
               { username: login }
@@ -32,9 +32,17 @@ module.exports = function (passport) {
     )
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
-  passport.deserializeUser(async (id, done) => {
-    const user = await User.findById(id);
+passport.serializeUser((users, done) => {
+  done(null, users.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await Users.findById(id);
     done(null, user);
-  });
+  } catch (err) {
+    done(err);
+  }
+});
+
 };
