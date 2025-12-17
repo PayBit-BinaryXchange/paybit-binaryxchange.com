@@ -23,29 +23,29 @@ app.set('view engine', 'ejs');
 app.set("trust proxy", 1); // REQUIRED for Render
 
 
+const port = process.env.PORT || 5000;
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
+
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("MongoDB connected");
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error("MongoDB connection failed:", err));
 
   app.use(session({
       secret: process.env.SECRET_KEY || "render-session-secret",
       resave: false,
-      saveUninitialized: false
+      saveUninitialized: false,
+    cookie: {
+    secure: true,
+    sameSite: "none"
+  }
     }));
 
     app.use(passport.initialize());
     app.use(passport.session());
     app.use(flash());
-
-    const port = process.env.PORT || 5000;
-    app.listen(port, () => {
-      console.log(`Server running`);
-    });
-  })
-  .catch(err => {
-    console.error("MongoDB connection failed:", err);
-    process.exit(1);
-  });
 
 
 
@@ -110,8 +110,9 @@ app.post("/login",
 
 
 /* ================= LOGOUT ================= */
-app.get("/logout", (req, res) => {
-  req.logout(() => {
+app.get("/logout", (req, res, next) => {
+  req.logout(err => {
+    if (err) return next(err);
     res.redirect("/Dashboard/login");
   });
 });
