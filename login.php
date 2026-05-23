@@ -1,10 +1,13 @@
 <?php
 session_start();
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+error_reporting(0);
 
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -17,20 +20,25 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-$dsn = $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL');
-
-if (!$dsn) {
+$dbUrl = getenv("DATABASE_URL");
+if (!$dbUrl) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database URL not configured']);
     exit();
 }
 
 try {
-    $pdo = new PDO($dsn, null, null, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false
-    ]);
+    $db = parse_url($dbUrl);
+    $pdo = new PDO(
+        "pgsql:host=".$db["host"].";port=".($db["port"] ?? 5432).";dbname=".ltrim($db["path"],"/"),
+        $db["user"] ?? '',
+        $db["pass"] ?? '',
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ]
+    );
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database connection failed']);
@@ -38,7 +46,6 @@ try {
 }
 
 $data = json_decode(file_get_contents("php://input"), true);
-
 if (json_last_error() !== JSON_ERROR_NONE) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Invalid JSON']);
@@ -62,7 +69,6 @@ if (empty($captcha) || !isset($_SESSION['captcha'])) {
     exit();
 }
 
-// Check if captcha expired - 120 seconds
 if (isset($_SESSION['captcha_time']) && (time() - $_SESSION['captcha_time'] > 120)) {
     unset($_SESSION['captcha'], $_SESSION['captcha_time']);
     http_response_code(400);
@@ -73,7 +79,7 @@ if (isset($_SESSION['captcha_time']) && (time() - $_SESSION['captcha_time'] > 12
 if (strcasecmp($captcha, $_SESSION['captcha']) !== 0) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Invalid captcha']);
-    unset($_SESSION['captcha'], $_SESSION['captcha_time']); // clear it so it can't be reused
+    unset($_SESSION['captcha'], $_SESSION['captcha_time']);
     exit();
 }
 
@@ -99,7 +105,24 @@ try {
         exit();
     }
 
+    // Generate and save token
     $token = bin2hex(random_bytes(32));
+    
+    // Create tokens table if it doesn't exist
+    $pdo->exec("CREATE TABLE IF NOT EXISTS tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token VARCHAR(64) UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+    )");
+    
+    $stmt = $pdo->prepare("INSERT INTO tokens (user_id, token) VALUES (?, ?) 
+                           ON CONFLICT (token) DO NOTHING");
+    $stmt->execute([$user['id'], $token]);
+    
+    // Clean old tokens older than 7 days
+    $pdo->exec("DELETE FROM tokens WHERE created_at < NOW() - INTERVAL '7 days'");
+
     unset($user['password_hash']);
 
     http_response_code(200);
@@ -115,4 +138,3 @@ try {
     echo json_encode(['success' => false, 'message' => 'Server error']);
     exit();
 }
-?>
