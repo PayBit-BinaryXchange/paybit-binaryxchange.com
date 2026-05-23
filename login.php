@@ -55,21 +55,30 @@ if (empty($email) || empty($password)) {
     exit();
 }
 
-// Captcha validation
+// Captcha validation with 2 minute expiry
 if (empty($captcha) || !isset($_SESSION['captcha'])) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Captcha is required']);
     exit();
 }
 
-if (strcasecmp($captcha, $_SESSION['captcha']) !== 0) {
+// Check if captcha expired - 120 seconds
+if (isset($_SESSION['captcha_time']) && (time() - $_SESSION['captcha_time'] > 120)) {
+    unset($_SESSION['captcha'], $_SESSION['captcha_time']);
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid captcha']);
-    unset($_SESSION['captcha']); // clear it so it can't be reused
+    echo json_encode(['success' => false, 'message' => 'Captcha expired. Refresh and try again.']);
     exit();
 }
 
-unset($_SESSION['captcha']); // one-time use
+if (strcasecmp($captcha, $_SESSION['captcha']) !== 0) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid captcha']);
+    unset($_SESSION['captcha'], $_SESSION['captcha_time']); // clear it so it can't be reused
+    exit();
+}
+
+// One-time use
+unset($_SESSION['captcha'], $_SESSION['captcha_time']);
 
 try {
     $stmt = $pdo->prepare("SELECT id, first_name, last_name, username, email, number, country, currency, password_hash 
