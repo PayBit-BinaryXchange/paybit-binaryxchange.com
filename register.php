@@ -4,13 +4,11 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-// Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-// Only allow POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);
@@ -18,7 +16,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // --- DB connection for Render Postgres ---
-$db = parse_url(getenv("DATABASE_URL"));
+$dbUrl = getenv("DATABASE_URL");
+if (!$dbUrl) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'DATABASE_URL not configured']);
+    exit();
+}
+
+$db = parse_url($dbUrl);
+if (!isset($db['host'], $db['port'], $db['path'], $db['user'], $db['pass'])) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Invalid DATABASE_URL format']);
+    exit();
+}
+
 try {
     $pdo = new PDO(
         "pgsql:host=".$db["host"].";port=".$db["port"].";dbname=".ltrim($db["path"],"/"),
@@ -38,7 +49,7 @@ try {
 // --- Get JSON body ---
 $data = json_decode(file_get_contents("php://input"), true);
 
-if (!$data) {
+if (json_last_error() !== JSON_ERROR_NONE || !$data) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Invalid JSON']);
     exit();
@@ -141,4 +152,3 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Registration failed. Try again later.']);
 }
-?>
