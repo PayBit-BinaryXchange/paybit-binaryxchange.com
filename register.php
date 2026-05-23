@@ -1,4 +1,5 @@
 <?php
+session_start();
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);
 error_reporting(0);
@@ -67,6 +68,15 @@ foreach ($required as $field) {
     }
 }
 
+// Check captcha against session
+$captcha_input = trim($data['captcha']);
+if (empty($_SESSION['captcha']) || strtolower($captcha_input) !== strtolower($_SESSION['captcha'])) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid or expired captcha']);
+    exit();
+}
+unset($_SESSION['captcha']); // prevent reuse
+
 $first_name = trim($data['first_name']);
 $last_name  = trim($data['last_name']);
 $username   = trim($data['username']);
@@ -77,7 +87,6 @@ $country    = trim($data['country']);
 $currency   = trim($data['currency']);
 $account    = trim($data['account'] ?? '');
 $referral   = trim($data['referral'] ?? 'None');
-$captcha    = trim($data['captcha']);
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     http_response_code(400);
@@ -92,14 +101,6 @@ if (strlen($password) < 6) {
 }
 
 try {
-    $stmt = $pdo->prepare("SELECT id FROM captchas WHERE code = ? AND created_at > NOW() - INTERVAL '10 minutes'");
-    $stmt->execute([$captcha]);
-    if ($stmt->rowCount() === 0) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid or expired captcha']);
-        exit();
-    }
-
     $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? OR username = ? LIMIT 1");
     $stmt->execute([$email, $username]);
     if ($stmt->rowCount() > 0) {
@@ -131,8 +132,6 @@ try {
     ]);
 
     $user_id = $stmt->fetchColumn();
-
-    $pdo->prepare("DELETE FROM captchas WHERE code = ?")->execute([$captcha]);
 
     http_response_code(201);
     echo json_encode([
