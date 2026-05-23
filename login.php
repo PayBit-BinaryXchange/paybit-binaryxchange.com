@@ -1,4 +1,6 @@
 <?php
+session_start();
+
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -45,7 +47,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 
 $email = trim($data['email'] ?? '');
 $password = $data['password'] ?? '';
-$captcha = $data['captcha'] ?? '';
+$captcha = trim($data['captcha'] ?? '');
 
 if (empty($email) || empty($password)) {
     http_response_code(400);
@@ -53,11 +55,21 @@ if (empty($email) || empty($password)) {
     exit();
 }
 
-if (empty($captcha)) {
+// Captcha validation
+if (empty($captcha) || !isset($_SESSION['captcha'])) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Captcha is required']);
     exit();
 }
+
+if (strcasecmp($captcha, $_SESSION['captcha']) !== 0) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid captcha']);
+    unset($_SESSION['captcha']); // clear it so it can't be reused
+    exit();
+}
+
+unset($_SESSION['captcha']); // one-time use
 
 try {
     $stmt = $pdo->prepare("SELECT id, first_name, last_name, username, email, number, country, currency, password_hash 
