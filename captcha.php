@@ -46,8 +46,7 @@ for ($i = 0; $i < 100; $i++) {
     imagesetpixel($image, random_int(0, $width), random_int(0, $height), $line_color);
 }
 
-// Add text - using imagestring so no TTF file needed
-// Font size 5 is the largest built-in font
+// Add text
 $x = 20;
 $y = 12;
 for ($i = 0; $i < strlen($code); $i++) {
@@ -59,4 +58,3 @@ for ($i = 0; $i < strlen($code); $i++) {
 imagepng($image);
 imagedestroy($image);
 exit();
-?>
