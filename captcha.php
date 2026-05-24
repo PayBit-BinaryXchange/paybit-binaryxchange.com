@@ -68,4 +68,4 @@ for ($i = 0; $i < strlen($code); $i++) {
 imagepng($image);
 imagedestroy($image);
 exit();
-?>
+
