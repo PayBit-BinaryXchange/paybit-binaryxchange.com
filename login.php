@@ -1,5 +1,4 @@
 <?php
-session_start();
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);
 error_reporting(0);
@@ -55,6 +54,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 $email = trim($data['email'] ?? '');
 $password = $data['password'] ?? '';
 $captcha = trim($data['captcha'] ?? '');
+$captcha_id = trim($data['captcha_id'] ?? '');
 
 if (empty($email) || empty($password)) {
     http_response_code(400);
@@ -62,29 +62,25 @@ if (empty($email) || empty($password)) {
     exit();
 }
 
-// Captcha validation with 2 minute expiry
-if (empty($captcha) || !isset($_SESSION['captcha'])) {
+// Captcha validation against DB
+if (empty($captcha) || empty($captcha_id)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Captcha is required']);
     exit();
 }
 
-if (isset($_SESSION['captcha_time']) && (time() - $_SESSION['captcha_time'] > 120)) {
-    unset($_SESSION['captcha'], $_SESSION['captcha_time']);
+$stmt = $pdo->prepare("SELECT code FROM captcha_codes WHERE id = ? AND expires_at > NOW() LIMIT 1");
+$stmt->execute([$captcha_id]);
+$row = $stmt->fetch();
+
+if (!$row || strcasecmp($captcha, $row['code']) !== 0) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Captcha expired. Refresh and try again.']);
+    echo json_encode(['success' => false, 'message' => 'Invalid or expired captcha']);
     exit();
 }
 
-if (strcasecmp($captcha, $_SESSION['captcha']) !== 0) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid captcha']);
-    unset($_SESSION['captcha'], $_SESSION['captcha_time']);
-    exit();
-}
-
-// One-time use
-unset($_SESSION['captcha'], $_SESSION['captcha_time']);
+// Delete captcha so it can't be reused
+$pdo->prepare("DELETE FROM captcha_codes WHERE id = ?")->execute([$captcha_id]);
 
 try {
     $stmt = $pdo->prepare("SELECT id, first_name, last_name, username, email, number, country, currency, password_hash 
@@ -105,7 +101,7 @@ try {
         exit();
     }
 
-    // Generate and save token
+    // Generate token
     $token = bin2hex(random_bytes(32));
     
     // Create tokens table if it doesn't exist
@@ -138,4 +134,3 @@ try {
     echo json_encode(['success' => false, 'message' => 'Server error']);
     exit();
 }
-
