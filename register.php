@@ -145,4 +145,3 @@ try {
     echo json_encode(['success' => false, 'message' => 'Database error']);
     exit();
 }
-?>
