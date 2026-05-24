@@ -138,4 +138,4 @@ try {
     echo json_encode(['success' => false, 'message' => 'Server error']);
     exit();
 }
-?>
+
