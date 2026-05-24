@@ -1,5 +1,4 @@
 <?php
-session_start();
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);
 error_reporting(0);
@@ -59,7 +58,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
     exit();
 }
 
-$required = ['first_name', 'last_name', 'username', 'email', 'password', 'country', 'currency', 'captcha'];
+$required = ['first_name', 'last_name', 'username', 'email', 'password', 'country', 'currency', 'captcha', 'captcha_id'];
 foreach ($required as $field) {
     if (empty($data[$field])) {
         http_response_code(400);
@@ -68,14 +67,22 @@ foreach ($required as $field) {
     }
 }
 
-// Check captcha against session
+// Check captcha against DB
+$captcha_id = trim($data['captcha_id']);
 $captcha_input = trim($data['captcha']);
-if (empty($_SESSION['captcha']) || strtolower($captcha_input) !== strtolower($_SESSION['captcha'])) {
+
+$stmt = $pdo->prepare("SELECT code FROM captcha_codes WHERE id = ? AND expires_at > NOW() LIMIT 1");
+$stmt->execute([$captcha_id]);
+$row = $stmt->fetch();
+
+if (!$row || strtolower($captcha_input) !== strtolower($row['code'])) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Invalid or expired captcha']);
     exit();
 }
-unset($_SESSION['captcha']); // prevent reuse
+
+// Delete captcha so it can't be reused
+$pdo->prepare("DELETE FROM captcha_codes WHERE id = ?")->execute([$captcha_id]);
 
 $first_name = trim($data['first_name']);
 $last_name  = trim($data['last_name']);
