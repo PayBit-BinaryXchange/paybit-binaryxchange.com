@@ -51,4 +51,4 @@ if (move_uploaded_file($file['tmp_name'], $filePath)) {
 } else {
     echo json_encode(["success" => false, "message" => "Upload failed"]);
 }
-?>
+
